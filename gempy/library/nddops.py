@@ -423,17 +423,17 @@ class NDStacker(object):
             # Because I'm sorting, I'll put large dummy values in a numpy array
             # Have to keep all values if all values are masked!
             # Sorts variance and mask with data
-            arg = np.argsort(np.where(mask & BAD, np.inf, data), axis=0)
+            arg = np.argsort(np.where(mask == DQ.max, np.inf, data), axis=0)
             data = take_along_axis(data, arg, axis=0)
             variance = take_along_axis(variance, arg, axis=0)
             mask = take_along_axis(mask, arg, axis=0)
             # IRAF imcombine maths
-            num_good = NDStacker._num_good(mask & BAD > 0)
+            num_good = NDStacker._num_good(mask == DQ.max)
             nlo = (num_good * float(nlow) / num_img + 0.001).astype(int)
             nhi = num_good - (num_good * float(nhigh) / num_img + 0.001).astype(int) - 1
             for i in range(num_img):
-                mask[i][i<nlo] |= ONE
-                mask[i][np.logical_and(i>nhi, i<num_good)] |= ONE
+                mask[i][i<nlo] = DQ.max
+                mask[i][np.logical_and(i>nhi, i<num_good)] = DQ.max
         return data, mask, variance
 
     @staticmethod
