@@ -184,7 +184,7 @@ class NDStacker(object):
             getattr(self._log, level)(msg)
 
     @staticmethod
-    def _process_mask(mask):
+    def _process_mask(mask, unflag_best_pixels=True):
         """
         Interpret and manipulate the mask arrays of the input images to
         select which pixels should be combined, and what the output mask pixel
@@ -232,9 +232,10 @@ class NDStacker(object):
 
             # Where we've been able to construct an output pixel (ngood>0)
             # we need to stop any further processing. Set the mask for "good"
-            # pixels to 0, and for bad pixels to 32768.
-            mask = np.where(np.logical_and(ngood>0, tmp_mask), DQ.datatype(32768), mask)
-            mask = np.where(np.logical_and(ngood>0, ~tmp_mask), ZERO, mask)
+            # pixels to 0, and for bad pixels to 65535.
+            mask = np.where(np.logical_and(ngood>0, tmp_mask), DQ.max, mask)
+            if unflag_best_pixels:
+                mask = np.where(np.logical_and(ngood>0, ~tmp_mask), ZERO, mask)
             # 32768 in output mask means we have an output pixel
             out_mask[ngood>0] |= 32768
 
@@ -271,6 +272,11 @@ class NDStacker(object):
         """
         rej_args = {arg: self._dict[arg] for arg in self._rejector.required_args
                     if arg in self._dict}
+
+        # We need to process the mask initially to only keep the "best" pixels
+        # around for consideration
+        if mask is not None:
+            mask, _ = NDStacker._process_mask(mask, unflag_best_pixels=False)
         data, mask, variance = self._rejector(data, mask, variance, **rej_args)
         #try:
         #    data, mask, variance = self._rejector(data, mask, variance, **rej_args)
