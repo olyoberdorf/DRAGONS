@@ -234,3 +234,102 @@ Below are one of the raw images and the final stack:
 
 Compare with IRAF
 =================
+
+IRAF dataset
+------------
+
+TODO
+
+Create a catalog of sources
+---------------------------
+
+To compare the reductions we will run SExtractor on both stacked images, match
+the catalogs, and compare the fluxes. First let us run the `detectSources`
+recipe, which runs SExtractor under the hood::
+
+    $ reduce N20170913S0153_stack.fits -r detectSources
+
+                --- reduce v2.1.0 ---
+
+    Running on Python 3.7.4
+    All submitted files appear valid:
+    N20170913S0153_stack.fits
+    Found 'detectSources' as a primitive.
+    ================================================================================
+    RECIPE: detectSources
+    ================================================================================
+        PRIMITIVE: detectSources
+        ------------------------
+        Found 1012 sources in N20170913S0153_stack.fits:1
+        .
+            Wrote N20170913S0153_sourcesDetected.fits in output directory
+
+    reduce completed successfully.
+
+And we do the same for the IRAF image::
+
+    $ reduce iraf/mfrgN20170913S0153_add.fits -r detectSources
+
+                --- reduce v2.1.0 ---
+
+    Running on Python 3.7.4
+    All submitted files appear valid:
+    iraf/mfrgN20170913S0153_add.fits
+    Found 'detectSources' as a primitive.
+    ================================================================================
+    RECIPE: detectSources
+    ================================================================================
+       PRIMITIVE: detectSources
+       ------------------------
+       Found 1023 sources in mfrgN20170913S0153_add.fits:1
+       .
+        Wrote mfrgN20170913S0153_add_sourcesDetected.fits in output directory
+
+    reduce completed successfully.
+
+Matching catalogs and plotting
+------------------------------
+
+.. code-block:: python
+
+   import astropy.units as u
+   import matplotlib.pyplot as plt
+   from astropy.coordinates import match_coordinates_sky, SkyCoord
+   from astropy.table import Table
+
+   def match_and_compare_cats(refname, newname, reflabel='IRAF',
+                              newlabel='DRAGONS', matchdist=0.25*u.arcsec, figsize=(12, 8)):
+       refcat = Table.read(refname, hdu='OBJCAT')
+       refcoord = SkyCoord(refcat['X_WORLD'], refcat['Y_WORLD'], frame='icrs', unit='deg')
+       print(f'Read {reflabel}, {refname}, {len(refcat)} rows')
+
+       newcat = Table.read(newname, hdu='OBJCAT')
+       newcoord = SkyCoord(newcat['X_WORLD'], newcat['Y_WORLD'], frame='icrs', unit='deg')
+       print(f'Read {newlabel}, {newname}, {len(newcat)} rows')
+
+       idx, d2d, d3d = newcoord.match_to_catalog_sky(refcoord)
+       sel = d2d < matchdist
+       print(f'Found {np.count_nonzero(sel)} matches')
+
+       newcat = newcat[sel]
+       refcat = refcat[idx[sel]]
+
+       fig, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize, sharex=True,
+                                      gridspec_kw={'height_ratios': [2, 1]})
+
+       ax1.loglog(refcat['FLUX_AUTO'], newcat['FLUX_AUTO'], '.', alpha=0.6)
+       #ax1.errorbar(refcat['FLUX_AUTO'], newcat['FLUX_AUTO'], fmt='.', alpha=0.5,
+       #            yerr=newcat['FLUXERR_AUTO'], xerr=refcat['FLUXERR_AUTO'])
+       ax1.set_ylabel(f'FLUX {newlabel}')
+       ax1.grid()
+
+       ax2.plot(refcat['FLUX_AUTO'], newcat['FLUX_AUTO'] / refcat['FLUX_AUTO'], '.', alpha=0.6)
+       ax2.set_xscale('log')
+       ax2.set_xlabel(f'FLUX {reflabel}')
+       ax2.set_ylabel(f'FLUX {newlabel} / {reflabel}')
+       ax2.set_ylim((0, 2))
+       ax2.grid()
+
+       fig.tight_layout(rect=(0, 0, 1, .95))
+       fig.suptitle(f'Flux comparison, {newlabel} vs {reflabel}', fontsize=16)
+       return fig
