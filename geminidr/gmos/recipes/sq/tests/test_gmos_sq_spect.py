@@ -45,7 +45,7 @@ def config(request, path_to_inputs, path_to_outputs):
         An object that contains `.input_dir` and `.output_dir`
     """
     c = ConfigTest(request.param, path_to_inputs, path_to_outputs)
-    return c
+    yield c
 
 
 class ConfigTest:
@@ -59,6 +59,7 @@ class ConfigTest:
         self.output_dir = os.path.join(output_dir, path)
 
         os.makedirs(self.output_dir, exist_ok=True)
+        os.chdir(self.output_dir)
 
         self.caldb = self.setup_caldb()
         self.setup_log()
@@ -98,8 +99,9 @@ class ConfigTest:
         """
         Set up log to be saved with the output data.
         """
-        logfile = os.path.join(self.output_dir, __file__.replace('.py', '.log'))
-        logutils.config(mode='quiet', file_name=logfile)
+        log_file = os.path.basename(__file__).replace('.py', '.log')
+        log_file = os.path.join(self.output_dir, log_file)
+        logutils.config(mode='quiet', file_name=log_file)
 
 
 @pytest.mark.gmosls
