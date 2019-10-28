@@ -4,23 +4,16 @@ Tests related to GMOS Long-slit Spectroscopy data reduction.
 """
 import glob
 import os
-import shutil
-
-import astrodata
-import geminidr
 
 # noinspection PyPackageRequirements
 import pytest
 
 # noinspection PyUnresolvedReferences
 import gemini_instruments
-
-from geminidr.gmos import primitives_gmos_spect, primitives_gmos_longslit
 from gempy.adlibrary import dataselect
 from gempy.utils import logutils
 from recipe_system import cal_service
 from recipe_system.reduction.coreReduce import Reduce
-from recipe_system.utils.reduce_utils import normalize_ucals
 
 dataset_folder_list = [
     'GMOS/GN-2017A-FT-19',
@@ -31,7 +24,7 @@ dataset_folder_list = [
 @pytest.fixture(scope='class', params=dataset_folder_list)
 def config(request, path_to_inputs, path_to_outputs):
     """
-    Super fixture that returns an object with the data required for the tests
+    Fixture that returns an object with the data required for the tests
     inside this file. This super fixture avoid confusions with Pytest, Fixtures
     and Parameters that could generate a very large matrix of configurations.
 
@@ -51,87 +44,62 @@ def config(request, path_to_inputs, path_to_outputs):
     namespace
         An object that contains `.input_dir` and `.output_dir`
     """
-    oldmask = os.umask(000)  # Allows manipulating permissions
+    c = ConfigTest(request.param, path_to_inputs, path_to_outputs)
+    return c
 
-    # Define the ConfigTest class ---
-    class ConfigTest:
+
+class ConfigTest:
+    """
+    Config class created for each dataset file. It is created from within
+    this a fixture so it can inherit the `path_to_*` fixtures as well.
+    """
+
+    def __init__(self, path, input_dir, output_dir):
+        self.input_dir = os.path.join(input_dir, path)
+        self.output_dir = os.path.join(output_dir, path)
+
+        os.makedirs(self.output_dir, exist_ok=True)
+
+        self.caldb = self.setup_caldb()
+        self.setup_log()
+
+        dataset = sorted(glob.glob(os.path.join(self.input_dir, '*.fits')))
+
+        self.list_of_biases = dataselect.select_data(dataset, ['BIAS'], [])
+        self.list_of_flats = dataselect.select_data(dataset, ['FLAT'], [])
+        self.list_of_arcs = dataselect.select_data(dataset, ['ARC'], [])
+        self.list_of_sci = dataselect.select_data(dataset, [], ['CAL'])
+
+    def setup_caldb(self):
         """
-        Config class created for each dataset file. It is created from within
-        this a fixture so it can inherit the `path_to_*` fixtures as well.
+        Setup calibration service to use new configurations for each dataset.
         """
-        def __init__(self, path):
+        config_fname = os.path.join(self.output_dir, "calibration_manager.cfg")
 
-            log_dir = "./logs"
+        if os.path.exists(config_fname):
+            os.remove(config_fname)
 
-            dataset = sorted(
-                glob.glob(os.path.join(path_to_inputs, path, '*.fits')))
+        config_file_content = (
+            "[calibs]\n"
+            "standalone = True\n"
+            "database_dir = {:s}\n".format(self.output_dir)
+        )
 
-            list_of_bias = dataselect.select_data(dataset, ['BIAS'], [])
-            list_of_flats = dataselect.select_data(dataset, ['FLAT'], [])
-            list_of_arcs = dataselect.select_data(dataset, ['ARC'], [])
-            list_of_science = dataselect.select_data(dataset, [], ['CAL'])
+        with open(config_fname, mode='w') as f:
+            f.write(config_file_content)
 
-            full_path = os.path.join(path_to_outputs, path)
+        calibration_service = cal_service.CalibrationService()
+        calibration_service.config(config_file=config_fname)
+        calibration_service.init(wipe=True)
 
-            os.makedirs(log_dir, mode=0o775, exist_ok=True)
-            os.makedirs(full_path, mode=0o775, exist_ok=True)
+        return calibration_service
 
-            config_file_name = os.path.join(full_path, "calibration_manager.cfg")
-
-            if os.path.exists(config_file_name):
-                os.remove(config_file_name)
-
-            config_file_content = (
-                "[calibs]\n"
-                "standalone = False\n"
-                "database_dir = {:s}\n".format(full_path)
-            )
-
-            with open(config_file_name, mode='w') as config_file:
-                config_file.write(config_file_content)
-            os.chmod(config_file_name, mode=0o775)
-
-            calibration_service = cal_service.CalibrationService()
-            calibration_service.config(config_file=config_file_name)
-
-            self.arcs = list_of_arcs
-            self.biases = list_of_bias
-            self.calibration_service = calibration_service
-            self.flats = list_of_flats
-            self.full_path = full_path
-            self.log_dir = log_dir
-            self.science = list_of_science
-
-    # Create ConfigTest object ---
-    c = ConfigTest(request.param)
-    yield c
-
-    # Tear Down ---
-    for root, dirs, files in os.walk('calibrations/'):
-        os.chmod(root, 0o775)
-        for f in files:
-            os.chmod(os.path.join(root, f), 0o775)
-        for d in dirs:
-            os.chmod(os.path.join(root, d), 0o775)
-
-    try:
-        shutil.rmtree(os.path.join(c.full_path, 'calibrations/'))
-    except FileNotFoundError:
-        pass
-
-    shutil.move('calibrations/', c.full_path)
-
-    for f in glob.glob(os.path.join(os.getcwd(), '*.fits')):
-        shutil.move(f, os.path.join(c.full_path, f))
-
-    for root, dirs, files in os.walk(c.full_path):
-        for d in dirs:
-            os.chmod(os.path.join(root, d), 0o775)
-        for f in files:
-            os.chmod(os.path.join(root, f), 0o775)
-
-    os.umask(oldmask)  # Restores default permission restrictions
-    del c
+    def setup_log(self):
+        """
+        Set up log to be saved with the output data.
+        """
+        logfile = os.path.join(self.output_dir, __file__.replace('.py', '.log'))
+        logutils.config(mode='quiet', file_name=logfile)
 
 
 @pytest.mark.gmosls
@@ -141,64 +109,54 @@ class TestGmosReduceLongslit:
     `dataset_folder` and `calibrations` parameter should be present on every
     test. Even when the test does not use it.
     """
+
     @staticmethod
     def test_can_run_reduce_bias(config):
         """
         Make sure that the reduce_BIAS works for spectroscopic data.
         """
-        logutils.config(
-            mode='quiet', file_name=os.path.join(
-                config.log_dir, 'reduce_GMOS_LS_bias.log'))
+        assert len(list(config.caldb.list_files())) == 0
 
         reduce = Reduce()
-        reduce.files.extend(config.biases)
-        reduce.upload = 'calibs'
+        reduce.files.extend(config.list_of_biases)
         reduce.runr()
 
+        config.caldb.add_cal(reduce.output_filenames[0])
+        assert len(list(config.caldb.list_files())) == 1
+
     @staticmethod
-    @pytest.mark.skip(reason="Waiting dev fitsserver to be deployed")
     def test_can_run_reduce_flat(config):
         """
         Make sure that the reduce_FLAT_LS_SPECT works for spectroscopic data.
         """
-        logutils.config(
-            mode='quiet', file_name=os.path.join(
-                config.log_dir, 'reduce_GMOS_LS_flat.log'))
+        assert len(list(config.caldb.list_files())) == 1
 
         reduce = Reduce()
-        reduce.files.extend(config.flats)
-        reduce.upload = 'calibs'
+        reduce.files.extend(config.list_of_flats)
         reduce.runr()
 
+        config.caldb.add_cal(reduce.output_filenames[0])
+        assert len(list(config.caldb.list_files())) == 2
+
     @staticmethod
-    @pytest.mark.skip(reason="Waiting dev fitsserver to be deployed")
+    @pytest.mark.xfail(reason="Missing bias")
     def test_can_run_reduce_arc(config):
         """
         Make sure that the recipes_ARC_LS_SPECT can run for spectroscopic
         data.
         """
-        logutils.config(
-            mode='quiet', file_name=os.path.join(
-                config.log_dir, 'reduce_GMOS_LS_arc.log'))
-
         reduce = Reduce()
-        reduce.files.extend(config.arcs)
-        reduce.upload = 'calibs'
+        reduce.files.extend(config.list_of_arcs)
         reduce.runr()
 
     @staticmethod
-    @pytest.mark.skip(reason="Define first how flats are processed")
+    @pytest.mark.xfail(reason="Missing arc")
     def test_can_run_reduce_science(config):
         """
         Make sure that the recipes_ARC_LS_SPECT works for spectroscopic data.
         """
-        logutils.config(
-            mode='quiet', file_name=os.path.join(
-                config.log_dir, 'reduce_GMOS_LS_science.log'))
-
         reduce = Reduce()
-        reduce.files.extend(config.science)
-        reduce.upload = 'calibs'
+        reduce.files.extend(config.list_of_sci)
         reduce.runr()
 
 
