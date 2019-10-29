@@ -15,6 +15,13 @@ from gempy.utils import logutils
 from recipe_system import cal_service
 from recipe_system.reduction.coreReduce import Reduce
 
+try:
+    import gemini_calmgr
+    HAS_GEMINI_CALMGR = True
+except (ImportError, ModuleNotFoundError):
+    HAS_GEMINI_CALMGR = False
+
+
 dataset_folder_list = [
     'GMOS/GN-2017A-FT-19',
     # 'GMOS/GS-2016B-Q-54-32'
@@ -111,6 +118,7 @@ class ConfigTest:
 
 
 @pytest.mark.gmosls
+@pytest.mark.skipif('not HAS_GEMINI_CALMGR')
 class TestGmosReduceLongslit:
     """
     Collection of tests that will run on every `dataset_folder`. Both
