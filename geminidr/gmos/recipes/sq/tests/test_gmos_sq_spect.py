@@ -44,8 +44,13 @@ def config(request, path_to_inputs, path_to_outputs):
     namespace
         An object that contains `.input_dir` and `.output_dir`
     """
+    # Set up ---
     c = ConfigTest(request.param, path_to_inputs, path_to_outputs)
     yield c
+
+    # Tear down ---
+    os.remove(os.path.join(c.output_dir, "cal_manager.db"))
+    del c
 
 
 class ConfigTest:
@@ -117,6 +122,7 @@ class TestGmosReduceLongslit:
         """
         Make sure that the reduce_BIAS works for spectroscopic data.
         """
+        # These asserts make sure tests are executed in correct order
         assert len(list(config.caldb.list_files())) == 0
 
         reduce = Reduce()
@@ -141,18 +147,21 @@ class TestGmosReduceLongslit:
         assert len(list(config.caldb.list_files())) == 2
 
     @staticmethod
-    @pytest.mark.xfail(reason="Missing bias")
     def test_can_run_reduce_arc(config):
         """
         Make sure that the recipes_ARC_LS_SPECT can run for spectroscopic
         data.
         """
+        assert len(list(config.caldb.list_files())) == 2
+
         reduce = Reduce()
         reduce.files.extend(config.list_of_arcs)
         reduce.runr()
 
+        config.caldb.add_cal(reduce.output_filenames[0])
+        assert len(list(config.caldb.list_files())) == 3
+
     @staticmethod
-    @pytest.mark.xfail(reason="Missing arc")
     def test_can_run_reduce_science(config):
         """
         Make sure that the recipes_ARC_LS_SPECT works for spectroscopic data.
