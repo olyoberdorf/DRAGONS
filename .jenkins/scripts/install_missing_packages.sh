@@ -14,9 +14,9 @@ if [[ "$parsedVersion" -lt "300" && "$parsedVersion" -gt "270" ]]; then
     pip install --quiet -r requirements_py2.txt
     pip install --quiet GeminiCalMgr-0.9.11-py2-none-any.whl
 else
-    conda env update --file ../conda_py2env_stable.yml
+    conda env update --file ../conda_py3env_stable.yml
     pip install --quiet -r requirements_py3.txt
-    pip install --quiet GeminiCalMgr-0.9.11-py3-none-any.whl
+    pip install --quiet GeminiCalMgr-0.9.13-py3-none-any.whl
 fi
 
 cd -
