@@ -143,10 +143,18 @@ pipeline {
     }
     post {
         always {
+
           junit (
             allowEmptyResults: true,
             testResults: 'reports/*_results.xml'
             )
+
+          // Updates group permissions for databases
+          sh  'find $DRAGONS_TEST_OUTPUTS -name "*.db" -exec chmod g+x {} \;'
+
+          // Updates group permissions for calibration folders
+          sh  'find $DRAGONS_TEST_OUTPUTS -name "calibrations" -exec chmod -R g+x {} \;'
+
         }
         success {
 //             sh  '.jenkins/scripts/build_sdist_file.sh'

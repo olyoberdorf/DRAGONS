@@ -56,8 +56,6 @@ def config(request, path_to_inputs, path_to_outputs):
     yield c
 
     # Tear down ---
-    # todo: @bquint why does cal_manager.db is written with `rw-r--` permissions instead of `rw-rw-`?
-    os.remove(os.path.join(c.output_dir, "cal_manager.db"))
     del c
 
 
