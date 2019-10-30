@@ -222,6 +222,7 @@ class ConfigTest:
 
 
 @pytest.mark.gmosls
+@pytest.mark.skip(reason="Speed up jenkins pipeline - remove this line later")
 class TestGmosSpectLongslitArcs:
     """
     Collection of tests that will run on every `dataset` file.
