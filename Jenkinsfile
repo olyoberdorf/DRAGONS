@@ -150,10 +150,10 @@ pipeline {
             )
 
           // Updates group permissions for databases
-          sh  'find $DRAGONS_TEST_OUTPUTS -name "*.db" -exec chmod g+x {} \\;'
+          sh  'find $DRAGONS_TEST_OUTPUTS -name "*.db" -exec chmod g+w {} \\;'
 
           // Updates group permissions for calibration folders
-          sh  'find $DRAGONS_TEST_OUTPUTS -name "calibrations" -exec chmod -R g+x {} \\;'
+          sh  'find $DRAGONS_TEST_OUTPUTS -name "calibrations" -exec chmod -R g+w {} \\;'
 
         }
         success {
