@@ -154,6 +154,7 @@ class TestGmosReduceLongslit:
         assert len(list(config.caldb.list_files())) == 2
 
     @staticmethod
+    @pytest.mark.skip(reason="Recipe must be updated")
     def test_can_run_reduce_arc(config):
         """
         Make sure that the recipes_ARC_LS_SPECT can run for spectroscopic
@@ -169,6 +170,7 @@ class TestGmosReduceLongslit:
         assert len(list(config.caldb.list_files())) == 3
 
     @staticmethod
+    @pytest.mark.skip(reason="Requires previous steps")
     def test_can_run_reduce_science(config):
         """
         Make sure that the recipes_ARC_LS_SPECT works for spectroscopic data.

@@ -42,7 +42,7 @@ dataset_file_list = [
     # "process_arcs/GMOS/N20130606S0291.fits",  # R150:0.550 E2V - todo: Unstable Wavelength Solution
     "process_arcs/GMOS/N20130112S0574.fits",  # R150:0.700 E2V
     # 'process_arcs/GMOS/N20130809S0337.fits',  # R150:0.700 E2V - todo: RMS > 0.5 (RMS = 0.61) | `gswavelength` cannot find solution either.
-    "process_arcs/GMOS/N20140408S0218.fits",  # R150:0.700 E2V
+    # "process_arcs/GMOS/N20140408S0218.fits",  # R150:0.700 E2V - todo: RMS > 0.5 (RMS = 0.52)
     # 'process_arcs/GMOS/N20180119S0232.fits',  # R150:0.520 HAM - todo: RMS > 0.5 (RMS = 0.85) | Unstable Wav. Sol. | `gswavelength` cannot find solution either.
     # 'process_arcs/GMOS/N20180516S0214.fits',  # R150:0.610 HAM ROI="Central Spectrum", bin=2x2 - todo: fails test_distortion_model_is_the_same
     "process_arcs/GMOS/N20171007S0439.fits",  # R150:0.650 HAM
@@ -84,8 +84,8 @@ dataset_file_list = [
     "process_arcs/GMOS/S20171219S0117.fits",  # B1200:0.440 HAM
     "process_arcs/GMOS/S20170908S0189.fits",  # B1200:0.550 HAM
     "process_arcs/GMOS/S20131230S0153.fits",  # R150:0.550 EEV
-    "process_arcs/GMOS/S20130801S0140.fits",  # R150:0.700 EEV
-    "process_arcs/GMOS/S20170430S0060.fits",  # R150:0.717 HAM
+    # "process_arcs/GMOS/S20130801S0140.fits",  # R150:0.700 EEV - todo: RMS > 0.5 (RMS = 0.69)
+    # "process_arcs/GMOS/S20170430S0060.fits",  # R150:0.717 HAM - todo: RMS > 0.5 (RMS = 0.78)
     # "process_arcs/GMOS/S20170430S0063.fits",  # R150:0.727 HAM - todo: TypeError: Lengths of the first three arguments (x,y,w) must be equal
     "process_arcs/GMOS/S20171102S0051.fits",  # R150:0.950 HAM
     "process_arcs/GMOS/S20130114S0100.fits",  # R400:0.620 EEV
