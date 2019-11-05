@@ -119,9 +119,7 @@ class ConfigTest:
 @pytest.mark.skipif('not HAS_GEMINI_CALMGR')
 class TestGmosReduceLongslit:
     """
-    Collection of tests that will run on every `dataset_folder`. Both
-    `dataset_folder` and `calibrations` parameter should be present on every
-    test. Even when the test does not use it.
+    Collection of tests that will run on every `dataset_folder`.
     """
 
     @staticmethod
