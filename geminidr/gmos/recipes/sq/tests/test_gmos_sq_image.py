@@ -121,7 +121,7 @@ def setup_log(path):
     log_file = path / log_file
 
     print("Setting up log file: {}".format(log_file))
-    logutils.config(mode='standard', file_name=log_file)
+    logutils.config(mode='quiet', file_name=log_file)
 
 
 def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
