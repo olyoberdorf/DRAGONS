@@ -54,31 +54,6 @@ test_case = [
 ]
 
 
-@pytest.fixture(scope="class")
-def cal_list():
-    """
-    Patch to store the calibrations inside a list since the Local Calibration
-    Manager does not work for different directories.
-    """
-    return []
-
-
-def setup_log(path):
-    """
-    Setup log file to run in quiet mode.
-
-    Parameters
-    ----------
-    path : fixture
-        PyTest's build-in fixture used to create a temporary directory.
-    """
-    log_file = os.path.basename(__file__).replace('.py', '.log')
-    log_file = path / log_file
-
-    print("Setting up log file: {}".format(log_file))
-    logutils.config(mode='standard', file_name=log_file)
-
-
 @pytest.fixture
 def output_dir_factory(tmp_path_factory):
     """
@@ -108,6 +83,22 @@ def output_dir_factory(tmp_path_factory):
         return _dir
 
     return _output_dir
+
+
+def setup_log(path):
+    """
+    Setup log file to run in quiet mode.
+
+    Parameters
+    ----------
+    path : fixture
+        PyTest's build-in fixture used to create a temporary directory.
+    """
+    log_file = os.path.basename(__file__).replace('.py', '.log')
+    log_file = path / log_file
+
+    print("Setting up log file: {}".format(log_file))
+    logutils.config(mode='standard', file_name=log_file)
 
 
 def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
@@ -166,75 +157,27 @@ def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
 @pytest.mark.incremental
 @pytest.mark.remote_data
 @pytest.mark.parametrize("path,binning,files", test_case, scope="module")
-class TestGmosSqImagingScience:
+def test_reduce(path, binning, files, output_dir_factory):
 
-    @staticmethod
-    def test_reduce_bias(path, files, binning, cal_list, output_dir_factory):
-        output_dir = output_dir_factory(path)
-        setup_log(output_dir)
+    cal_list = []
+    files = [testing.download_from_archive(f, path) for f in files]
+    output_dir = output_dir_factory(path)
+    setup_log(output_dir)
 
-        files = [testing.download_from_archive(f, path) for f in files]
+    master_bias = _reduce(files, binning, tags=['BIAS'])
+    cal_list.append('processed_bias:{:s}'.format(master_bias))
 
-        master_bias = _reduce(files, binning, tags=['BIAS'])
+    master_flat = _reduce(files, binning, tags=['FLAT'], calib_files=cal_list)
+    cal_list.append('processed_flat:{:s}'.format(master_flat))
 
-        cal_list.append('processed_bias:{:s}'.format(master_bias))
+    expression = 'observation_class=="science" or observation_class==None'
+    master_fringe = _reduce(
+        files, binning, xtags=['CAL'], expression=expression,
+        calib_files=cal_list, recipe_name='makeProcessedFringe')
+    cal_list.append('processed_fringe:{:s}'.format(master_fringe))
 
-    @staticmethod
-    def test_processed_bias_in_local_cal_list(path, binning, files, cal_list):
-        assert any(['processed_bias' in cal for cal in cal_list])
-
-    @staticmethod
-    def test_reduce_flats(path, files, binning, cal_list, output_dir_factory):
-        output_dir = output_dir_factory(path)
-        setup_log(output_dir)
-
-        files = [testing.download_from_archive(f, path) for f in files]
-
-        master_flat = _reduce(
-            files, binning, tags=['FLAT'], calib_files=cal_list)
-
-        cal_list.append('processed_flat:{:s}'.format(master_flat))
-
-    @staticmethod
-    def test_processed_flat_in_local_cal_list(path, binning, files, cal_list):
-        assert any(['processed_flat' in cal for cal in cal_list])
-
-    @staticmethod
-    def test_reduce_fringes(path, files, binning, cal_list, output_dir_factory):
-        output_dir = output_dir_factory(path)
-        setup_log(output_dir)
-
-        files = [testing.download_from_archive(f, path) for f in files]
-
-        master_fringe = _reduce(
-            files,
-            binning,
-            xtags=['CAL'],
-            expression='observation_class=="science" or observation_class==None',
-            calib_files=cal_list,
-            recipe_name='makeProcessedFringe')
-
-        cal_list.append('processed_fringe:{:s}'.format(master_fringe))
-
-    @staticmethod
-    def test_processed_fringe_in_local_cal_list(path, binning, files, cal_list):
-        assert any(['processed_fringe' in cal for cal in cal_list])
-
-    @staticmethod
-    def test_reduce_science(path, files, binning, cal_list, output_dir_factory):
-        output_dir = output_dir_factory(path)
-        setup_log(output_dir)
-
-        files = [testing.download_from_archive(f, path) for f in files]
-
-        master_fringe = _reduce(
-            files,
-            binning,
-            xtags=['CAL'],
-            expression='observation_class=="science" or observation_class==None',
-            calib_files=cal_list)
-
-        cal_list.append('processed_fringe:{:s}'.format(master_fringe))
+    _reduce(
+        files, binning, xtags=['CAL'], expression=expression, calib_files=cal_list)
 
 
 # These tests need refactoring to reduce the replication of API boilerplate
