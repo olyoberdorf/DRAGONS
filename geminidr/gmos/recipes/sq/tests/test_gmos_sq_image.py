@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# ToDo: Clean up files if tests pass
+# ToDo: Make Incremental work
+
 import glob
 import os
 
@@ -12,7 +15,7 @@ from recipe_system.reduction.coreReduce import Reduce
 from recipe_system.utils.reduce_utils import normalize_ucals
 
 test_case = [
-    ('GMOS/GN-2017B-LP-15', [
+    ('GMOS/GN-2017B-LP-15', '2x2', [
         'N20170912S0295.fits',
         'N20170912S0296.fits',
         'N20170912S0297.fits',
@@ -52,8 +55,13 @@ test_case = [
 
 
 @pytest.fixture(scope="class")
-def calibrations():
+def cal_list():
+    """
+    Patch to store the calibrations inside a list since the Local Calibration
+    Manager does not work for different directories.
+    """
     return []
+
 
 def setup_log(path):
     """
@@ -68,11 +76,30 @@ def setup_log(path):
     log_file = path / log_file
 
     print("Setting up log file: {}".format(log_file))
-    logutils.config(mode='standard', file_name=log_file) 
+    logutils.config(mode='standard', file_name=log_file)
+
 
 @pytest.fixture
 def output_dir_factory(tmp_path_factory):
-    
+    """
+    Temporary output directory factory that relies on PyTest's build-in
+    session-scoped `tmp_path_factory` fixture.
+
+    Parameters
+    ----------
+    tmp_path_factory : fixture
+        PyTest's built-in session-scoped fixture that creates a temporary
+        directory in the system's temp folder. This can be set by adding
+        `--basetemp=mydir` when calling via command line.
+
+    Returns
+    -------
+    callable
+        This is a function that creates a sub-directory inside the temporary
+        path and changes the current working directory to it so reduced data is
+        stored there.
+    """
+
     def _output_dir(path):
         _dir = tmp_path_factory.getbasetemp()
         _dir = _dir / path
@@ -83,12 +110,52 @@ def output_dir_factory(tmp_path_factory):
     return _output_dir
 
 
-def _reduce(list_of_files, tags=[], xtags=[], expression='True', calib_files=[], recipe_name='_default'):
+def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
+            calib_files=None, recipe_name='_default'):
+    """
+    Helper function to minimize repeated steps.
 
-    e = dataselect.expr_parser(expression)
+    Parameters
+    ----------
+    list_of_files : list
+        Input files
+    binning : str
+        A "{}x{}" formatted string where the first field is the binning in X and
+        the second is the binning in Y.
+    tags : {None, list}
+        Tags that would be used to include files from the selected file list.
+    xtags : {None, list}
+        Tags that would be used to remove files from the selected file list.
+    expression : str
+        Boolean expression to select data based on descriptors.
+    calib_files : {None, list}
+        List of calibrations files with their proper prefix added.
+        E.g.: `processed_bias:X20001231Q000_bias.fits`
+    recipe_name : str
+        Name of the recipe used by `Reduce` ("_default").
+
+    Returns
+    -------
+    str
+        The first file name of the reduced data.
+    """
+    tags = tags if tags is not None else []
+    xtags = xtags if xtags is not None else []
+    calib_files = calib_files if calib_files is not None else []
+
+    bin_x, bin_y = binning.split('x')
+
+    bin_expression = \
+        "detector_x_bin=={:s} and detector_y_bin=={:s}".format(bin_x, bin_y)
+
+    e = dataselect.expr_parser(
+        "{:s} and {:s}".format(expression, bin_expression))
+
+    data = dataselect.select_data(
+        list_of_files, tags=tags, xtags=xtags, expression=e)
 
     r = Reduce()
-    r.files.extend(dataselect.select_data(list_of_files, tags=tags, xtags=xtags, expression=e))
+    r.files.extend(data)
     r.recipename = recipe_name
     r.ucals = normalize_ucals(r.files, calib_files)
     r.runr()
@@ -96,76 +163,78 @@ def _reduce(list_of_files, tags=[], xtags=[], expression='True', calib_files=[],
     return r.output_filenames[0]
 
 
-@pytest.mark.remote_data
 @pytest.mark.incremental
-@pytest.mark.parametrize("path,files", test_case, scope="module")
+@pytest.mark.remote_data
+@pytest.mark.parametrize("path,binning,files", test_case, scope="module")
 class TestGmosSqImagingScience:
 
     @staticmethod
-    def test_reduce_bias(path, files, calibrations, output_dir_factory):
+    def test_reduce_bias(path, files, binning, cal_list, output_dir_factory):
         output_dir = output_dir_factory(path)
         setup_log(output_dir)
 
         files = [testing.download_from_archive(f, path) for f in files]
-        
-        master_bias = _reduce(files, tags=['BIAS'])
-        
-        calibrations.append('processed_bias:{:s}'.format(master_bias)) 
+
+        master_bias = _reduce(files, binning, tags=['BIAS'])
+
+        cal_list.append('processed_bias:{:s}'.format(master_bias))
 
     @staticmethod
-    def test_processed_bias_in_local_cal_list(path, files, calibrations):
-        assert any(['processed_bias' in cal for cal in calibrations])
+    def test_processed_bias_in_local_cal_list(path, binning, files, cal_list):
+        assert any(['processed_bias' in cal for cal in cal_list])
 
     @staticmethod
-    def test_reduce_flats(path, files, calibrations, output_dir_factory):
+    def test_reduce_flats(path, files, binning, cal_list, output_dir_factory):
         output_dir = output_dir_factory(path)
         setup_log(output_dir)
 
         files = [testing.download_from_archive(f, path) for f in files]
-        
+
         master_flat = _reduce(
-            files, tags=['FLAT'], calib_files=calibrations)
-        
-        calibrations.append('processed_flat:{:s}'.format(master_flat))
+            files, binning, tags=['FLAT'], calib_files=cal_list)
+
+        cal_list.append('processed_flat:{:s}'.format(master_flat))
 
     @staticmethod
-    def test_processed_flat_in_local_cal_list(path, files, calibrations):
-        assert any(['processed_flat' in cal for cal in calibrations])
+    def test_processed_flat_in_local_cal_list(path, binning, files, cal_list):
+        assert any(['processed_flat' in cal for cal in cal_list])
 
     @staticmethod
-    def test_reduce_fringes(path, files, calibrations, output_dir_factory):
+    def test_reduce_fringes(path, files, binning, cal_list, output_dir_factory):
         output_dir = output_dir_factory(path)
         setup_log(output_dir)
 
         files = [testing.download_from_archive(f, path) for f in files]
 
         master_fringe = _reduce(
-            files, 
-            xtags=['CAL'], 
+            files,
+            binning,
+            xtags=['CAL'],
             expression='observation_class=="science" or observation_class==None',
-            calib_files=calibrations, 
+            calib_files=cal_list,
             recipe_name='makeProcessedFringe')
-        
-        calibrations.append('processed_fringe:{:s}'.format(master_fringe))
+
+        cal_list.append('processed_fringe:{:s}'.format(master_fringe))
 
     @staticmethod
-    def test_processed_fring_in_local_cal_list(path, files, calibrations):
-        assert any(['processed_fringe' in cal for cal in calibrations])
+    def test_processed_fringe_in_local_cal_list(path, binning, files, cal_list):
+        assert any(['processed_fringe' in cal for cal in cal_list])
 
     @staticmethod
-    def test_reduce_science(path, files, calibrations, output_dir_factory):
+    def test_reduce_science(path, files, binning, cal_list, output_dir_factory):
         output_dir = output_dir_factory(path)
         setup_log(output_dir)
 
         files = [testing.download_from_archive(f, path) for f in files]
 
         master_fringe = _reduce(
-            files, 
-            xtags=['CAL'], 
+            files,
+            binning,
+            xtags=['CAL'],
             expression='observation_class=="science" or observation_class==None',
-            calib_files=calibrations)
-        
-        calibrations.append('processed_fringe:{:s}'.format(master_fringe))
+            calib_files=cal_list)
+
+        cal_list.append('processed_fringe:{:s}'.format(master_fringe))
 
 
 # These tests need refactoring to reduce the replication of API boilerplate
