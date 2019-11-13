@@ -17,17 +17,18 @@ from recipe_system.reduction.coreReduce import Reduce
 
 try:
     import gemini_calmgr
+
     HAS_GEMINI_CALMGR = True
 except (ImportError, ModuleNotFoundError):
     HAS_GEMINI_CALMGR = False
 
-
 dataset_folder_list = [
     'GMOS/GN-2017A-FT-19',
-    # 'GMOS/GS-2016B-Q-54-32'
+    # 'GMOS/GS-2016B-Q-54-32'  ## Todo CalManager does not work with more than one dataset
 ]
 
 
+@pytest.mark.incremental
 @pytest.fixture(scope='class', params=dataset_folder_list)
 def config(request, path_to_inputs, path_to_outputs):
     """
