@@ -15,7 +15,9 @@ from recipe_system.reduction.coreReduce import Reduce
 from recipe_system.utils.reduce_utils import normalize_ucals
 
 test_case = [
-    ('GMOS/GN-2017B-LP-15', '2x2', [
+
+    # GMOS-N HAM 2x2 Science ----------------
+    ('GMOS/GN-2017B-LP-15', '2x2', None, [
         'N20170912S0295.fits',
         'N20170912S0296.fits',
         'N20170912S0297.fits',
@@ -50,7 +52,28 @@ test_case = [
         'N20170915S0338.fits',
         'N20170915S0339.fits',
         'N20170915S0340.fits',
-        'N20170915S0341.fits'])
+        'N20170915S0341.fits']),
+
+    # GMOS-N EEV 2x2 Science ----------------
+    ('GMOS/GN-2002A-Q-89', '2x2', None, [
+        'N20020214S059.fits', 
+        'N20020214S060.fits', 
+        'N20020214S061.fits', 
+        # 'N20020214S062.fits',  # Why am I commented?
+        # 'N20020214S063.fits',  # Why am I commented?
+        # 'N20020214S064.fits',  # Why am I commented?
+        'N20020214S022.fits', 
+        'N20020214S023.fits', 
+        'N20020214S024.fits', 
+        # 'N20020214S025.fits',  # Why am I commented?
+        # 'N20020214S026.fits',  # Why am I commented?
+        'N20020211S156.fits', 
+        'N20020211S157.fits', 
+        'N20020211S158.fits', 
+        # 'N20020211S159.fits',  # Why am I commented?
+        # 'N20020211S160.fits',  # Why am I commented?
+     ]),
+
 ]
 
 
@@ -102,7 +125,7 @@ def setup_log(path):
 
 
 def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
-            calib_files=None, recipe_name='_default'):
+            calib_files=None, recipe_name='_default', user_parameters=None):
     """
     Helper function to minimize repeated steps.
 
@@ -124,6 +147,8 @@ def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
         E.g.: `processed_bias:X20001231Q000_bias.fits`
     recipe_name : str
         Name of the recipe used by `Reduce` ("_default").
+    user_parameters : tuple
+        Pairs containing "primitive_name:parameter" and value.
 
     Returns
     -------
@@ -133,6 +158,7 @@ def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
     tags = tags if tags is not None else []
     xtags = xtags if xtags is not None else []
     calib_files = calib_files if calib_files is not None else []
+    user_parameters = user_parameters if user_parameters is not None else []
 
     bin_x, bin_y = binning.split('x')
 
@@ -149,6 +175,7 @@ def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
     r.files.extend(data)
     r.recipename = recipe_name
     r.ucals = normalize_ucals(r.files, calib_files)
+    r.uparms = user_parameters
     r.runr()
 
     return r.output_filenames[0]
@@ -156,8 +183,8 @@ def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
 
 @pytest.mark.incremental
 @pytest.mark.remote_data
-@pytest.mark.parametrize("path,binning,files", test_case, scope="module")
-def test_reduce(path, binning, files, output_dir_factory):
+@pytest.mark.parametrize("path,binning,upars,files", test_case, scope="module")
+def test_reduce(path, binning, upars, files, output_dir_factory):
 
     cal_list = []
     files = [testing.download_from_archive(f, path) for f in files]
@@ -172,12 +199,14 @@ def test_reduce(path, binning, files, output_dir_factory):
 
     expression = 'observation_class=="science" or observation_class==None'
     master_fringe = _reduce(
-        files, binning, xtags=['CAL'], expression=expression,
+        files, binning, xtags=['CAL'],
+        expression=expression, user_parameters=upars,
         calib_files=cal_list, recipe_name='makeProcessedFringe')
     cal_list.append('processed_fringe:{:s}'.format(master_fringe))
 
     _reduce(
-        files, binning, xtags=['CAL'], expression=expression, calib_files=cal_list)
+        files, binning, xtags=['CAL'], expression=expression,
+        user_parameters=upars, calib_files=cal_list)
 
 
 # These tests need refactoring to reduce the replication of API boilerplate
