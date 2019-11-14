@@ -227,7 +227,7 @@ def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
 
 
 @pytest.mark.remote_data
-@pytest.mark.parametrize("path,binning,upars,files", test_case, scope="function", indirect=True)
+@pytest.mark.parametrize("path,binning,upars,files", test_case, scope="function")
 def test_reduce(path, binning, upars, files, output_dir_factory):
     cal_list = []
     files = [testing.download_from_archive(f, path) for f in files]
@@ -260,6 +260,7 @@ def test_reduce(path, binning, upars, files, output_dir_factory):
         calib_files=cal_list)
 
 
+# ==============================================================================
 # These tests need refactoring to reduce the replication of API boilerplate
 
 @pytest.mark.skip(reason="Investigate MemoryError")
