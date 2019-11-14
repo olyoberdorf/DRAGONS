@@ -17,67 +17,112 @@ from recipe_system.utils.reduce_utils import normalize_ucals
 test_case = [
 
     # GMOS-N HAM 2x2 Science ----------------
-    ('GMOS/GN-2017B-LP-15', '2x2', None, [
-        'N20170912S0295.fits',
-        'N20170912S0296.fits',
-        'N20170912S0297.fits',
-        'N20170912S0298.fits',
-        'N20170912S0299.fits',
-        'N20170913S0153.fits',
-        'N20170913S0154.fits',
-        'N20170913S0155.fits',
-        'N20170913S0156.fits',
-        'N20170913S0157.fits',
-        'N20170913S0158.fits',
-        'N20170914S0481.fits',
-        'N20170914S0482.fits',
-        'N20170914S0483.fits',
-        'N20170914S0484.fits',
-        'N20170914S0485.fits',
-        'N20170915S0274.fits',
-        'N20170915S0275.fits',
-        'N20170915S0276.fits',
-        'N20170915S0277.fits',
-        'N20170915S0278.fits',
-        'N20170915S0279.fits',
-        'N20170915S0280.fits',
-        'N20170915S0281.fits',
-        'N20170915S0282.fits',
-        'N20170915S0283.fits',
-        'N20170915S0284.fits',
-        'N20170915S0285.fits',
-        'N20170915S0286.fits',
-        'N20170915S0287.fits',
-        'N20170915S0337.fits',
-        'N20170915S0338.fits',
-        'N20170915S0339.fits',
-        'N20170915S0340.fits',
-        'N20170915S0341.fits']),
+    ('GMOS/GN-2017B-LP-15', '2x2', None,
+     [
+         'N20170912S0295.fits',
+         'N20170912S0296.fits',
+         'N20170912S0297.fits',
+         'N20170912S0298.fits',
+         'N20170912S0299.fits',
+         'N20170913S0153.fits',
+         'N20170913S0154.fits',
+         'N20170913S0155.fits',
+         'N20170913S0156.fits',
+         'N20170913S0157.fits',
+         'N20170913S0158.fits',
+         'N20170914S0481.fits',
+         'N20170914S0482.fits',
+         'N20170914S0483.fits',
+         'N20170914S0484.fits',
+         'N20170914S0485.fits',
+         'N20170915S0274.fits',
+         'N20170915S0275.fits',
+         'N20170915S0276.fits',
+         'N20170915S0277.fits',
+         'N20170915S0278.fits',
+         'N20170915S0279.fits',
+         'N20170915S0280.fits',
+         'N20170915S0281.fits',
+         'N20170915S0282.fits',
+         'N20170915S0283.fits',
+         'N20170915S0284.fits',
+         'N20170915S0285.fits',
+         'N20170915S0286.fits',
+         'N20170915S0287.fits',
+         'N20170915S0337.fits',
+         'N20170915S0338.fits',
+         'N20170915S0339.fits',
+         'N20170915S0340.fits',
+         'N20170915S0341.fits']),
 
     # GMOS-N EEV 2x2 Science ----------------
-    ('GMOS/GN-2002A-Q-89', '2x2', None, [
-        'N20020214S059.fits', 
-        'N20020214S060.fits', 
-        'N20020214S061.fits', 
-        # 'N20020214S062.fits',  # Why am I commented?
-        # 'N20020214S063.fits',  # Why am I commented?
-        # 'N20020214S064.fits',  # Why am I commented?
-        'N20020214S022.fits', 
-        'N20020214S023.fits', 
-        'N20020214S024.fits', 
-        # 'N20020214S025.fits',  # Why am I commented?
-        # 'N20020214S026.fits',  # Why am I commented?
-        'N20020211S156.fits', 
-        'N20020211S157.fits', 
-        'N20020211S158.fits', 
-        # 'N20020211S159.fits',  # Why am I commented?
-        # 'N20020211S160.fits',  # Why am I commented?
+    ('GMOS/GN-2002A-Q-89', '2x2', None,
+     [
+         'N20020214S059.fits',
+         'N20020214S060.fits',
+         'N20020214S061.fits',
+         # 'N20020214S062.fits',  # Why am I commented?
+         # 'N20020214S063.fits',  # Why am I commented?
+         # 'N20020214S064.fits',  # Why am I commented?
+         'N20020214S022.fits',
+         'N20020214S023.fits',
+         'N20020214S024.fits',
+         # 'N20020214S025.fits',  # Why am I commented?
+         # 'N20020214S026.fits',  # Why am I commented?
+         'N20020211S156.fits',
+         'N20020211S157.fits',
+         'N20020211S158.fits',
+         # 'N20020211S159.fits',  # Why am I commented?
+         # 'N20020211S160.fits',  # Why am I commented?
+     ]),
+
+    # GMOS-S HAM 1x1 i-band Science 
+    ("GMOS/GS-2017B-Q-6", "1x1", [
+        ('stackFrames:memory', 1),
+        # ('addDQ:user_bpm', 'fixed_bpm_1x1_FullFrame.fits'),
+        ('adjustWCSToReference:rotate', True),
+        ('adjustWCSToReference:scale', True),
+        ('resampleToCommonFrame:interpolator', 'spline3')],
+     [
+         'S20171205S0062.fits',
+         'S20171205S0063.fits',
+         'S20171205S0064.fits',
+         'S20171205S0065.fits',
+         'S20171205S0066.fits',
+         'S20171205S0067.fits',
+         'S20171205S0068.fits',
+         'S20171205S0069.fits',
+         'S20171205S0070.fits',
+         'S20171205S0071.fits',
+         # --- 15 files currently use too much memory ---
+         # 'S20171205S0072.fits',
+         # 'S20171205S0073.fits',
+         # 'S20171205S0074.fits',
+         # 'S20171205S0075.fits',
+         # 'S20171205S0076.fits',
+         # ---
+         'S20171204S0022.fits',
+         'S20171204S0023.fits',
+         'S20171204S0024.fits',
+         'S20171204S0025.fits',
+         'S20171204S0026.fits',
+         'S20171206S0128.fits',
+         'S20171206S0129.fits',
+         'S20171206S0130.fits',
+         'S20171206S0131.fits',
+         'S20171206S0132.fits',
+         'S20171206S0120.fits',
+         'S20171206S0121.fits',
+         'S20171206S0124.fits',
+         'S20171206S0125.fits',
+         'S20171206S0126.fits',
+         'S20171206S0127.fits',
      ]),
 
 ]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def output_dir_factory(tmp_path_factory):
     """
     Temporary output directory factory that relies on PyTest's build-in
@@ -121,7 +166,7 @@ def setup_log(path):
     log_file = path / log_file
 
     print("Setting up log file: {}".format(log_file))
-    logutils.config(mode='quiet', file_name=log_file)
+    logutils.config(mode='standard', file_name=log_file)
 
 
 def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
@@ -181,11 +226,9 @@ def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
     return r.output_filenames[0]
 
 
-@pytest.mark.incremental
 @pytest.mark.remote_data
-@pytest.mark.parametrize("path,binning,upars,files", test_case, scope="module")
+@pytest.mark.parametrize("path,binning,upars,files", test_case, scope="function", indirect=True)
 def test_reduce(path, binning, upars, files, output_dir_factory):
-
     cal_list = []
     files = [testing.download_from_archive(f, path) for f in files]
     output_dir = output_dir_factory(path)
@@ -199,14 +242,22 @@ def test_reduce(path, binning, upars, files, output_dir_factory):
 
     expression = 'observation_class=="science" or observation_class==None'
     master_fringe = _reduce(
-        files, binning, xtags=['CAL'],
-        expression=expression, user_parameters=upars,
-        calib_files=cal_list, recipe_name='makeProcessedFringe')
+        files,
+        binning,
+        xtags=['CAL'],
+        expression=expression,
+        user_parameters=upars,
+        calib_files=cal_list,
+        recipe_name='makeProcessedFringe')
     cal_list.append('processed_fringe:{:s}'.format(master_fringe))
 
     _reduce(
-        files, binning, xtags=['CAL'], expression=expression,
-        user_parameters=upars, calib_files=cal_list)
+        files,
+        binning,
+        xtags=['CAL'],
+        expression=expression,
+        user_parameters=upars,
+        calib_files=cal_list)
 
 
 # These tests need refactoring to reduce the replication of API boilerplate
