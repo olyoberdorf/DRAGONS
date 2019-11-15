@@ -123,7 +123,7 @@ test_case = [
 
 
 @pytest.fixture(scope="session")
-def output_dir_factory(tmp_path_factory):
+def output_dir(tmp_path_factory):
     """
     Temporary output directory factory that relies on PyTest's build-in
     session-scoped `tmp_path_factory` fixture.
@@ -142,10 +142,10 @@ def output_dir_factory(tmp_path_factory):
         path and changes the current working directory to it so reduced data is
         stored there.
     """
+    tmp_path = tmp_path_factory.mktemp('dragons-tests')
 
     def _output_dir(path):
-        _dir = tmp_path_factory.getbasetemp()
-        _dir = _dir / path
+        _dir = tmp_path / path
         _dir.mkdir(parents=True, exist_ok=True)
         os.chdir(_dir)
         return _dir
@@ -166,7 +166,7 @@ def setup_log(path):
     log_file = path / log_file
 
     print("Setting up log file: {}".format(log_file))
-    logutils.config(mode='standard', file_name=log_file)
+    logutils.config(mode='quiet', file_name=log_file)
 
 
 def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
@@ -226,38 +226,74 @@ def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
     return r.output_filenames[0]
 
 
+@pytest.fixture(scope="class")
+def path(request):
+    return request.param
+
+
+@pytest.fixture(scope="class")
+def binning(request):
+    return request.param
+
+
+@pytest.fixture(scope="class")
+def upars(request):
+    return request.param
+
+
+@pytest.fixture(scope="class")
+def files(request):
+    return request.param
+
+
+@pytest.fixture(scope="class")
+def calibrations():
+    return []
+
+
 @pytest.mark.remote_data
-@pytest.mark.parametrize("path,binning,upars,files", test_case, scope="function")
-def test_reduce(path, binning, upars, files, output_dir_factory):
-    cal_list = []
-    files = [testing.download_from_archive(f, path) for f in files]
-    output_dir = output_dir_factory(path)
-    setup_log(output_dir)
+@pytest.mark.parametrize("path,binning,upars,files", test_case, scope="class", indirect=True)
+class TestGmosSqImage:
 
-    master_bias = _reduce(files, binning, tags=['BIAS'])
-    cal_list.append('processed_bias:{:s}'.format(master_bias))
+    def test_setup_reduction(self, path, binning, upars, files, calibrations, output_dir):
+        calibrations.clear()
+        setup_log(output_dir(path))
 
-    master_flat = _reduce(files, binning, tags=['FLAT'], calib_files=cal_list)
-    cal_list.append('processed_flat:{:s}'.format(master_flat))
+    def test_reduce_bias(self, path, binning, upars, files, calibrations):
+        files = [testing.download_from_archive(f, path) for f in files]
+        master_bias = _reduce(files, binning, tags=['BIAS'])
+        calibrations.append('processed_bias:{:s}'.format(master_bias))
 
-    expression = 'observation_class=="science" or observation_class==None'
-    master_fringe = _reduce(
-        files,
-        binning,
-        xtags=['CAL'],
-        expression=expression,
-        user_parameters=upars,
-        calib_files=cal_list,
-        recipe_name='makeProcessedFringe')
-    cal_list.append('processed_fringe:{:s}'.format(master_fringe))
+    def test_reduce_flat(self, path, binning, upars, files, calibrations):
+        files = [testing.download_from_archive(f, path) for f in files]
+        master_flat = _reduce(files, binning, tags=['FLAT'], calib_files=calibrations)
+        calibrations.append('processed_flat:{:s}'.format(master_flat))
 
-    _reduce(
-        files,
-        binning,
-        xtags=['CAL'],
-        expression=expression,
-        user_parameters=upars,
-        calib_files=cal_list)
+    def test_reduce_fringe(self, path, binning, upars, files, calibrations):
+        expression = 'observation_class=="science" or observation_class==None'
+        files = [testing.download_from_archive(f, path) for f in files]
+        master_fringe = _reduce(
+            files,
+            binning,
+            xtags=['CAL'],
+            expression=expression,
+            user_parameters=upars,
+            calib_files=calibrations,
+            recipe_name='makeProcessedFringe')
+
+        calibrations.append('processed_fringe:{:s}'.format(master_fringe))
+
+    def test_reduce_science(self, path, binning, upars, files, calibrations):
+        expression = 'observation_class=="science" or observation_class==None'
+        files = [testing.download_from_archive(f, path) for f in files]
+        _reduce(
+            files,
+            binning,
+            xtags=['CAL'],
+            expression=expression,
+            user_parameters=upars,
+            calib_files=calibrations)
+
 
 
 # ==============================================================================
