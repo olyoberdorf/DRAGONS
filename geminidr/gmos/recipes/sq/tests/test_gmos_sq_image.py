@@ -76,7 +76,7 @@ test_case = [
          # 'N20020211S160.fits',  # Why am I commented?
      ]),
 
-    # GMOS-S HAM 1x1 i-band Science 
+    # GMOS-S HAM 1x1 i-band Science
     ("GMOS/GS-2017B-Q-6", "1x1", [
         ('stackFrames:memory', 1),
         # ('addDQ:user_bpm', 'fixed_bpm_1x1_FullFrame.fits'),
@@ -251,7 +251,7 @@ def calibrations():
     return []
 
 
-@pytest.mark.remote_data
+# @pytest.mark.remote_data
 @pytest.mark.parametrize("path,binning,upars,files", test_case, scope="class", indirect=True)
 class TestGmosSqImage:
 
