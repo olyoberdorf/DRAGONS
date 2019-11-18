@@ -7,11 +7,12 @@ DRAGONS vs IRAF - GMOS Data Reduction Tutorial
 ..    PIPE-USER-116_GMOSImg-DRTutorial
 
 This is a brief tutorial on how to reduce GMOS images using DRAGONS, and how it
-compares with the IRAF way. It is based on information found in the `GEMINI
-GMOS WebPage <https://www.gemini.edu/sciops/instruments/gmos/>`_ and in the
-DRAGONS_.  It is also based on the `GMOS Data Reduction Tutorial
-<TODO:/put/link/here>`_, which covers the basics of reducing GMOS_ data using
-DRAGONS_. We refer to this tutorial for the installation of DRAGONS_.
+compares with the IRAF way. It is based on information found in the `GEMINI GMOS
+WebPage <https://www.gemini.edu/sciops/instruments/gmos/>`_ and in the DRAGONS_
+documentation.  It is also based on the `GMOS Data Reduction Tutorial
+<https://gmosimg-drtutorial.readthedocs.io/en/v2.1.0/>`_, which covers the
+basics of reducing GMOS_ data using DRAGONS_. We refer to this tutorial for the
+installation of DRAGONS_.
 
 .. contents::
 
@@ -41,7 +42,7 @@ at what we have. Let us call the command tool "|typewalk|"::
 
     $ typewalk
 
-    directory:  /data/Tutorials/gmos/GN-2017B-LP-15-13/raw
+    directory:  /data/tutorials/gmos/GN-2017B-LP-15-13/raw
         N20170913S0153.fits ............... (GEMINI) (GMOS) (IMAGE) (NORTH) (RAW) (SIDEREAL) (UNPREPARED)
         N20170913S0154.fits ............... (GEMINI) (GMOS) (IMAGE) (NORTH) (RAW) (SIDEREAL) (UNPREPARED)
         N20170913S0155.fits ............... (GEMINI) (GMOS) (IMAGE) (NORTH) (RAW) (SIDEREAL) (UNPREPARED)
@@ -110,9 +111,9 @@ Data Reduction
 
 We will reduce the GMOS imaging data using command line tools. For this we need
 the local calibration manager, that uses the same calibration association rules
-as the Gemini Observatory Archive.  See
-GMOSImg-DRTutorial/_build/html/02_data_reduction.html#set-up-the-local-calibration-manager
-(TODO: put real link).
+as the `Gemini Observatory Archive (GOA)`_.  See
+`here <https://gmosimg-drtutorial.readthedocs.io/en/v2.1.0/02_data_reduction.html#set-up-the-local-calibration-manager>`__
+to set up the local calibration manager.
 
 Create File lists
 -----------------
@@ -134,12 +135,18 @@ List of Biases
 The bias files are selected with "|dataselect|"::
 
    $ dataselect --tags BIAS raw/*.fits > bias.lis
+   $ cat bias.lis
+   raw/N20170914S0481.fits
+   raw/N20170914S0482.fits
+   raw/N20170914S0483.fits
+   raw/N20170914S0484.fits
+   raw/N20170914S0485.fits
 
 List of Flats
 ^^^^^^^^^^^^^
 
 Now create a list of FLATS.  Two of the flats are of bad quality and must be
-excluded (N20170915S0281 and N20170915S0280)::
+excluded (``N20170915S0281`` and ``N20170915S0280``)::
 
    $ dataselect --tags TWILIGHT raw/*.fits | grep -v "\(N20170915S0281\|N20170915S0280\)" > flats.lis
 
@@ -155,8 +162,8 @@ calibration::
 Create a Master Bias
 --------------------
 
-We start the data reduction by creating a master bias for the science data.
-It can be created and added to the calibration database using the commands below::
+We start the data reduction by creating a master bias for the science data.  It
+can be created and added to the calibration database using the commands below::
 
    $ reduce @bias.lis
    $ caldb add calibrations/processed_bias/N20170914S0481_bias.fits
@@ -179,9 +186,12 @@ inside ``./calibrations/processed_flat``. It will have a ``_flat`` suffix.
 Create Master Fringe Frame
 --------------------------
 
-To create the fringe frame we need to call the ``makeProcessedFringe`` recipe::
+To `create the master fringe frame
+<https://gmosimg-drtutorial.readthedocs.io/en/v2.1.0/04_tips_and_tricks.html#create-master-fringe-frame>`__
+we need to call the ``makeProcessedFringe`` recipe.  Here we use the median as
+averaging operation to match what IRAF does::
 
-   $ reduce @science.lis -r makeProcessedFringe
+   $ reduce @science.lis -r makeProcessedFringe -p makeFringeFrame:operation=median
    $ caldb add calibrations/processed_fringe/N20170913S0153_fringe.fits
 
 Checking calibrations
@@ -191,9 +201,9 @@ To check that the calibration frames were added to the database, use ``caldb lis
 
    $ caldb list
 
-   N20170913S0153_fringe.fits     /data/Tutorials/gmos/GN-2017B-LP-15-13/calibrations/processed_fringe
-   N20170914S0481_bias.fits       /data/Tutorials/gmos/GN-2017B-LP-15-13/calibrations/processed_bias
-   N20170915S0274_flat.fits       /data/Tutorials/gmos/GN-2017B-LP-15-13/calibrations/processed_flat
+   N20170913S0153_fringe.fits     /data/tutorials/gmos/GN-2017B-LP-15-13/calibrations/processed_fringe
+   N20170914S0481_bias.fits       /data/tutorials/gmos/GN-2017B-LP-15-13/calibrations/processed_bias
+   N20170915S0274_flat.fits       /data/tutorials/gmos/GN-2017B-LP-15-13/calibrations/processed_flat
 
 Reduce Science Images
 ---------------------
@@ -201,21 +211,17 @@ Reduce Science Images
 Once we have our calibration files processed and added to the database, we can
 run ``reduce`` on our science data::
 
-   $ reduce @science.lis
+   $ reduce @science.lis -p stackFrames:scale=True
 
-This command will generate bias and flat corrected files and will stack them.
-If a fringe frames is needed this command will apply the correction.  The stacked
-image will have the ``_stack`` suffix.
+This command will generate bias and flat corrected files and will stack them
+after scaling images to the same intensity.  If a fringe frames is needed this
+command will apply the correction.  The stacked image will have the ``_stack``
+suffix.
 
 The output stack units are in electrons (header keyword BUNIT=electrons).
 The output stack is stored in a multi-extension FITS (MEF) file.  The science
 signal is in the "SCI" extension, the variance is in the "VAR" extension, and
 the data quality plane (mask) is in the "DQ" extension.
-
-
-.. note::  Depending on your version of Astropy, you might see a lot of
-    Astropy warnings about headers and coordinates system.  You can safely
-    ignore them.
 
 Below are one of the raw images and the final stack:
 
@@ -231,14 +237,49 @@ Below are one of the raw images and the final stack:
    Final stacked image. The light-gray area represents the
    masked pixels.
 
-
 Compare with IRAF
 =================
 
 IRAF dataset
 ------------
 
-TODO
+This dataset was reduced using IRAF with the following script. One difference
+with DRAGONS is that IRAF's ``imcoadd`` uses a scaling according to the signal
+in the objects. For the purpose of this comparison, this scaling was disabled
+(``fl_scale-``).
+
+::
+
+    gemini
+    gmos
+
+    set rawdir = "../raw/"
+
+    gemlist "N20170912S" "295-299" > "bias.lis"
+    gemlist "N20170914S" "481-485" >> "bias.lis"
+    gbias @bias.lis N20170912S0295_bias rawpath=rawdir$ fl_over+ fl_trim+ \
+    fl_vardq+ fl_inter- biasrows="55:2112"
+
+    # A couple of the flats are too bright.
+    gemlist "N20170915S" "274-279,282-287" > "flat.lis"
+    giflat @flat.lis N20170915S0274_flat bias="N20170912S0295_bias" fl_vardq+ \
+        fl_over+ fl_trim+ rawpath=rawdir$ biasrows="55:2112" fl_qe+ fl_inter-
+
+    gemlist "N20170913S" "153-158" > "sci.lis"
+    gireduce @sci.lis bias=N20170912S0295_bias flat1=N20170915S0274_flat \
+        rawpath=rawdir$ fl_over+ biasrows="55:2112" fl_qecorr+ fl_vardq+ \
+        fl_inter-
+
+    gifringe rg@sci.lis outimage="N20170913S0153_fringe" fl_vardq=yes \
+        fl_mask=yes skysec="[DET][780:2350,25:2060]"
+
+    girmfringe "rg//@sci.lis" N20170913S0153_fringe scale=1.0 fl_prop+
+
+    gmosaic frg@sci.lis fl_vardq+ fl_fulldq+ fl_clean+
+
+    sections mfrg//@sci.lis > mfrgsci.lis
+
+    imcoadd @mfrgsci.lis fwhm=4 threshold=100 fl_scale- fl_overwrite+
 
 Create a catalog of sources
 ---------------------------
@@ -318,8 +359,6 @@ Matching catalogs and plotting
                                       gridspec_kw={'height_ratios': [2, 1]})
 
        ax1.loglog(refcat['FLUX_AUTO'], newcat['FLUX_AUTO'], '.', alpha=0.6)
-       #ax1.errorbar(refcat['FLUX_AUTO'], newcat['FLUX_AUTO'], fmt='.', alpha=0.5,
-       #            yerr=newcat['FLUXERR_AUTO'], xerr=refcat['FLUXERR_AUTO'])
        ax1.set_ylabel(f'FLUX {newlabel}')
        ax1.grid()
 
@@ -333,3 +372,9 @@ Matching catalogs and plotting
        fig.tight_layout(rect=(0, 0, 1, .95))
        fig.suptitle(f'Flux comparison, {newlabel} vs {reflabel}', fontsize=16)
        return fig
+
+
+.. figure:: _static/img/N20170913S0153_comp_iraf_medfr.png
+   :align: center
+
+   Comparison of DRAGONS and IRAF fluxes, as measured by SExtractor.
