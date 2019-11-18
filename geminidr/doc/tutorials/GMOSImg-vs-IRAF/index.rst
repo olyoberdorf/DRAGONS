@@ -188,10 +188,9 @@ Create Master Fringe Frame
 
 To `create the master fringe frame
 <https://gmosimg-drtutorial.readthedocs.io/en/v2.1.0/04_tips_and_tricks.html#create-master-fringe-frame>`__
-we need to call the ``makeProcessedFringe`` recipe.  Here we use the median as
-averaging operation to match what IRAF does::
+we need to call the ``makeProcessedFringe`` recipe::
 
-   $ reduce @science.lis -r makeProcessedFringe -p makeFringeFrame:operation=median
+   $ reduce @science.lis -r makeProcessedFringe
    $ caldb add calibrations/processed_fringe/N20170913S0153_fringe.fits
 
 Checking calibrations
@@ -385,7 +384,7 @@ With this helper function with can do the match and compare the fluxes:
    >>> match_and_compare_cats('mfrgN20170913S0153_add_sourcesDetected.fits',
    ...                        'N20170913S0153_sourcesDetected.fits')
 
-.. figure:: _static/img/N20170913S0153_comp_iraf_medfr.png
+.. figure:: _static/img/N20170913S0153_comp_iraf_meanfr.png
    :align: center
 
    Comparison of DRAGONS and IRAF fluxes, as measured by SExtractor.
