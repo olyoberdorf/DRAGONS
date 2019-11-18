@@ -244,7 +244,7 @@ IRAF dataset
 ------------
 
 This dataset was reduced using IRAF with the following script. One difference
-with DRAGONS is that IRAF's ``imcoadd`` uses a scaling according to the signal
+with DRAGONS is that IRAF's "imcoadd_" uses a scaling according to the signal
 in the objects. For the purpose of this comparison, this scaling was disabled
 (``fl_scale-``).
 
@@ -281,11 +281,14 @@ in the objects. For the purpose of this comparison, this scaling was disabled
 
     imcoadd @mfrgsci.lis fwhm=4 threshold=100 fl_scale- fl_overwrite+
 
+
+.. _imcoadd: http://www.gemini.edu/sciops/data/IRAFdoc/imcoadd.html
+
 Create a catalog of sources
 ---------------------------
 
 To compare the reductions we will run SExtractor on both stacked images, match
-the catalogs, and compare the fluxes. First let us run the `detectSources`
+the catalogs, and compare the fluxes. First let us run the ``detectSources``
 recipe, which runs SExtractor under the hood::
 
     $ reduce N20170913S0153_stack.fits -r detectSources
@@ -331,6 +334,9 @@ And we do the same for the IRAF image::
 Matching catalogs and plotting
 ------------------------------
 
+Now we can match the catalogs obtained from the IRAF and DRAGONS images. We do
+this with Astropy's :func:`~astropy.coordinates.match_coordinates_sky` function.
+
 .. code-block:: python
 
    import astropy.units as u
@@ -338,41 +344,46 @@ Matching catalogs and plotting
    from astropy.coordinates import match_coordinates_sky, SkyCoord
    from astropy.table import Table
 
-   def match_and_compare_cats(refname, newname, reflabel='IRAF',
-                              newlabel='DRAGONS', matchdist=0.25*u.arcsec, figsize=(12, 8)):
+   def match_and_compare_cats(refname, newname, matchdist=0.25*u.arcsec):
        refcat = Table.read(refname, hdu='OBJCAT')
        refcoord = SkyCoord(refcat['X_WORLD'], refcat['Y_WORLD'], frame='icrs', unit='deg')
-       print(f'Read {reflabel}, {refname}, {len(refcat)} rows')
+       print('Read IRAF, {}, {} rows'.format(refname, len(refcat)))
 
        newcat = Table.read(newname, hdu='OBJCAT')
        newcoord = SkyCoord(newcat['X_WORLD'], newcat['Y_WORLD'], frame='icrs', unit='deg')
-       print(f'Read {newlabel}, {newname}, {len(newcat)} rows')
+       print('Read DRAGONS, {}, {} rows'.format(newname, len(newcat)))
 
        idx, d2d, d3d = newcoord.match_to_catalog_sky(refcoord)
        sel = d2d < matchdist
-       print(f'Found {np.count_nonzero(sel)} matches')
+       print('Found {} matches'.format(np.count_nonzero(sel)))
 
        newcat = newcat[sel]
        refcat = refcat[idx[sel]]
 
-       fig, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize, sharex=True,
+       fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True,
                                       gridspec_kw={'height_ratios': [2, 1]})
 
        ax1.loglog(refcat['FLUX_AUTO'], newcat['FLUX_AUTO'], '.', alpha=0.6)
-       ax1.set_ylabel(f'FLUX {newlabel}')
+       ax1.set_ylabel('FLUX DRAGONS')
        ax1.grid()
 
        ax2.plot(refcat['FLUX_AUTO'], newcat['FLUX_AUTO'] / refcat['FLUX_AUTO'], '.', alpha=0.6)
        ax2.set_xscale('log')
-       ax2.set_xlabel(f'FLUX {reflabel}')
-       ax2.set_ylabel(f'FLUX {newlabel} / {reflabel}')
+       ax2.set_xlabel('FLUX IRAF')
+       ax2.set_ylabel('FLUX DRAGONS / IRAF')
        ax2.set_ylim((0, 2))
        ax2.grid()
 
        fig.tight_layout(rect=(0, 0, 1, .95))
-       fig.suptitle(f'Flux comparison, {newlabel} vs {reflabel}', fontsize=16)
+       fig.suptitle('Flux comparison, DRAGONS vs IRAF', fontsize=16)
        return fig
 
+With this helper function with can do the match and compare the fluxes:
+
+.. code-block:: python
+
+   >>> match_and_compare_cats('mfrgN20170913S0153_add_sourcesDetected.fits',
+   ...                        'N20170913S0153_sourcesDetected.fits')
 
 .. figure:: _static/img/N20170913S0153_comp_iraf_medfr.png
    :align: center
