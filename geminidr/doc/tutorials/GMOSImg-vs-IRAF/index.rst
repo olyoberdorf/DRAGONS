@@ -233,8 +233,7 @@ Below are one of the raw images and the final stack:
 .. figure:: _static/img/N20170913S0153_stack.png
    :align: center
 
-   Final stacked image. The light-gray area represents the
-   masked pixels.
+   Final stacked image.
 
 Compare with IRAF
 =================
@@ -280,6 +279,11 @@ in the objects. For the purpose of this comparison, this scaling was disabled
 
     imcoadd @mfrgsci.lis fwhm=4 threshold=100 fl_scale- fl_overwrite+
 
+
+.. figure:: _static/img/mfrgN20170913S0153_add_medfr_noscale.png
+   :align: center
+
+   IRAF stacked image.
 
 .. _imcoadd: http://www.gemini.edu/sciops/data/IRAFdoc/imcoadd.html
 
