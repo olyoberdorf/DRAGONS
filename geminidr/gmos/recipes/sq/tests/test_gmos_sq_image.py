@@ -166,7 +166,7 @@ def setup_log(path):
     log_file = path / log_file
 
     print("Setting up log file: {}".format(log_file))
-    logutils.config(mode='quiet', file_name=log_file)
+    logutils.config(mode='standard', file_name=log_file)
 
 
 def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
@@ -226,73 +226,53 @@ def _reduce(list_of_files, binning, tags=None, xtags=None, expression='True',
     return r.output_filenames[0]
 
 
-@pytest.fixture(scope="class")
-def path(request):
-    return request.param
-
-
-@pytest.fixture(scope="class")
-def binning(request):
-    return request.param
-
-
-@pytest.fixture(scope="class")
-def upars(request):
-    return request.param
-
-
-@pytest.fixture(scope="class")
-def files(request):
-    return request.param
-
-
-@pytest.fixture(scope="class")
+@pytest.fixture(scope="module")
 def calibrations():
     return []
 
 
 # @pytest.mark.remote_data
-@pytest.mark.parametrize("path,binning,upars,files", test_case, scope="class", indirect=True)
-class TestGmosSqImage:
+@pytest.mark.parametrize("path,binning,upars,files", test_case, scope="module")
+def test_gmos_sq_image(path, binning, upars, files, calibrations, output_dir):
 
-    def test_setup_reduction(self, path, binning, upars, files, calibrations, output_dir):
-        calibrations.clear()
-        setup_log(output_dir(path))
+    # Setting up
+    calibrations.clear()
+    setup_log(output_dir(path))
 
-    def test_reduce_bias(self, path, binning, upars, files, calibrations):
-        files = [testing.download_from_archive(f, path) for f in files]
-        master_bias = _reduce(files, binning, tags=['BIAS'])
-        calibrations.append('processed_bias:{:s}'.format(master_bias))
+    # Test reduce bias
+    files = [testing.download_from_archive(f, path) for f in files]
+    master_bias = _reduce(files, binning, tags=['BIAS'])
+    calibrations.append('processed_bias:{:s}'.format(master_bias))
 
-    def test_reduce_flat(self, path, binning, upars, files, calibrations):
-        files = [testing.download_from_archive(f, path) for f in files]
-        master_flat = _reduce(files, binning, tags=['FLAT'], calib_files=calibrations)
-        calibrations.append('processed_flat:{:s}'.format(master_flat))
+    # Test reduce flat
+    files = [testing.download_from_archive(f, path) for f in files]
+    master_flat = _reduce(files, binning, tags=['FLAT'], calib_files=calibrations)
+    calibrations.append('processed_flat:{:s}'.format(master_flat))
 
-    def test_reduce_fringe(self, path, binning, upars, files, calibrations):
-        expression = 'observation_class=="science" or observation_class==None'
-        files = [testing.download_from_archive(f, path) for f in files]
-        master_fringe = _reduce(
-            files,
-            binning,
-            xtags=['CAL'],
-            expression=expression,
-            user_parameters=upars,
-            calib_files=calibrations,
-            recipe_name='makeProcessedFringe')
+    # Test reduce fringe
+    expression = 'observation_class=="science" or observation_class==None'
+    files = [testing.download_from_archive(f, path) for f in files]
+    master_fringe = _reduce(
+        files,
+        binning,
+        xtags=['CAL'],
+        expression=expression,
+        user_parameters=upars,
+        calib_files=calibrations,
+        recipe_name='makeProcessedFringe')
 
-        calibrations.append('processed_fringe:{:s}'.format(master_fringe))
+    calibrations.append('processed_fringe:{:s}'.format(master_fringe))
 
-    def test_reduce_science(self, path, binning, upars, files, calibrations):
-        expression = 'observation_class=="science" or observation_class==None'
-        files = [testing.download_from_archive(f, path) for f in files]
-        _reduce(
-            files,
-            binning,
-            xtags=['CAL'],
-            expression=expression,
-            user_parameters=upars,
-            calib_files=calibrations)
+    # Test reduce sci
+    expression = 'observation_class=="science" or observation_class==None'
+    files = [testing.download_from_archive(f, path) for f in files]
+    _reduce(
+        files,
+        binning,
+        xtags=['CAL'],
+        expression=expression,
+        user_parameters=upars,
+        calib_files=calibrations)
 
 
 
