@@ -1,9 +1,25 @@
 #!/usr/bin/env python
 
 import datetime
+import glob
+import os
+
 import pytest
+
 import astrodata
-import gemini_instruments
+
+
+@pytest.fixture
+def gemini_files(path_to_inputs):
+    def get_files(instrument):
+        return glob.glob(os.path.join(path_to_inputs, instrument, "*fits"))
+
+    gemini_files = []
+    gemini_files.extend(get_files("Archive"))
+    gemini_files.sort()
+
+    yield gemini_files
+
 
 DESCRIPTORS_TYPES = [
     ('airmass', float),
