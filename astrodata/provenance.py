@@ -96,10 +96,13 @@ def add_provenance_history(ad, timestamp_start, timestamp_stop, primitive, args)
     args_arr.append(args)
 
     dtype = ("S28", "S28", "S128", "S%d" % colsize)
-    # ad.append(Table([timestamp_start_arr, timestamp_stop_arr, primitive_arr, args_arr],
-    #                                 names=('timestamp_start', 'timestamp_stop',
-    #                                         'primitive', 'args'),
-    #                                 dtype=dtype), name="PROVENANCE_HISTORY")
+
+    # TODO this del is because the setter does not call append if the data exists
+    # This is causing the FITS data to get out of sync.  When the FITS file 
+    # eventually gets written it still has the old provenance history.  By 
+    # deleting the PROVENANCE_HISTORY first, the code in the FITS handling 
+    # will call append and the updated data will end up where it belongs, 
+    # eventually also being written to disk.
     if ad.PROVENANCE_HISTORY:
         del ad.PROVENANCE_HISTORY
 
